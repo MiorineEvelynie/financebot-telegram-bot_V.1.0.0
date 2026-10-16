@@ -11,8 +11,6 @@ MODEL = "gemini-3.6-flash"
 
 gc = gspread.service_account(filename="service_account.json")
 
-# Tanpa whitelist / paywall: semua user yang chat bot akan dilayani
-# dan datanya masuk ke SATU spreadsheet bersama ini.
 SHEET_ID = "1hMkFYor8hM-aR31b0omjgkFYmb8ng1lscEl4_g4Rhww"
 
 PROMPT = """Kamu asisten pencatat keuangan UMKM Indonesia.
