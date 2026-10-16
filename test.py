@@ -5,6 +5,7 @@ from google.genai import types
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 import gspread
+import asyncio
 
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 MODEL = "gemini-3.6-flash"
@@ -89,6 +90,9 @@ async def handle(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await msg.reply_text("Maaf, gagal memproses. Coba kirim ulang dengan lebih jelas.")
         print("ERROR:", e)
 
+
+
 app = ApplicationBuilder().token(os.environ["TELEGRAM_TOKEN"]).build()
 app.add_handler(MessageHandler(filters.TEXT | filters.PHOTO | filters.VOICE, handle))
+asyncio.set_event_loop(asyncio.new_event_loop())
 app.run_polling()
