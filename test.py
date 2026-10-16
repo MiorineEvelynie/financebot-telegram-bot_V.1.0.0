@@ -3,7 +3,7 @@ from datetime import date
 from google import genai
 from google.genai import types
 from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
 import gspread
 
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
@@ -14,6 +14,12 @@ gc = gspread.service_account(filename="service_account.json")
 # Tanpa whitelist / paywall: semua user yang chat bot akan dilayani
 # dan datanya masuk ke SATU spreadsheet bersama ini.
 SHEET_ID = "1hMkFYor8hM-aR31b0omjgkFYmb8ng1lscEl4_g4Rhww"
+
+# Link untuk perintah /opencsv
+# gid=0 = tab pertama. Ganti sesuai gid tab "Data_Mentah" jika berbeda
+# (lihat di URL browser saat tab itu dibuka, angka setelah "gid=").
+CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
+SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit"
 
 PROMPT = """Kamu asisten pencatat keuangan UMKM Indonesia.
 Ekstrak transaksi dari input berikut. Balas HANYA JSON valid, tanpa teks lain:
@@ -56,8 +62,15 @@ def write_rows(sheet_id, rows, user_label):
             f"TRX-{date.today():%y%m%d}-{len(ws.col_values(1)):04d}",
             r["tanggal"], r["kategori"], r["deskripsi"],
             r["tipe"], r["nominal"], r.get("catatan", ""),
-            user_label,  # kolom tambahan: siapa pengirimnya (lihat catatan di bawah)
+            user_label,  # kolom tambahan: siapa pengirimnya
         ], value_input_option="USER_ENTERED")
+
+async def opencsv(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📄 Data transaksi kamu:\n\n"
+        f"Lihat di Sheets: {SHEET_URL}\n\n"
+        f"Unduh sebagai CSV: {CSV_URL}"
+    )
 
 async def handle(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     msg = update.message
@@ -92,5 +105,9 @@ async def handle(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         print("ERROR:", e)
 
 app = ApplicationBuilder().token(os.environ["TELEGRAM_TOKEN"]).build()
+
+# CommandHandler didaftarkan SEBELUM MessageHandler, supaya /opencsv
+# tidak ikut tertangkap filters.TEXT dan dikirim ke Gemini.
+app.add_handler(CommandHandler("opencsv", opencsv))
 app.add_handler(MessageHandler(filters.TEXT | filters.PHOTO | filters.VOICE, handle))
 app.run_polling()
